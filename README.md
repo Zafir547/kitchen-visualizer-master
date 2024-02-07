@@ -6,4 +6,4 @@ Visualize a kitchen using various counter-top and floor styles.
 HTML and JavaScript.
 
 ## Demo
-https://motalhak.github.io/kitchen-visualizer/
+https://zafir547.github.io/kitchen-visualizer-master/
