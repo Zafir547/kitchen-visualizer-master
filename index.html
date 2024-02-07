@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Visualizer</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0-beta1/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-giJF6kkoqNQ00vy+HMDP7azOuL0xtbfIcaT9wjKHr8RbDVddVHyTfAAsrekwKmP1" crossorigin="anonymous">
+    <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.15.1/css/all.css" integrity="sha384-vp86vTRFVJgpjF9jiIGPEEqYqlDwgyBgEF109VFjmqGmIY/Y4HV4d3Gp2irVfcrp" crossorigin="anonymous">
+    <link rel="stylesheet" href="./style.css">
+    <link rel="stylesheet" href="./header.css">
+</head>
+<body>
+<div class="main">
+    <div class="header">
+        <div class="nav">
+            <a class="logo" href="index.html"><h1 class="title">VISUALIZER</h1></a>
+            <div class="nav-links">
+                <a href="" class="link">Vendor</a>
+                <a href="" class="link">Customer</a>
+                <a href="" class="link">Chat now</a>
+            </div>
+        </div>
+    </div>
+    <div class="header">
+        <div class="nav">
+            <div class="nav-links-footer">
+                <i class="fas fa-search"></i>
+                <div class="bar"></div>
+                <a href="" class="link">Products</a>
+                <a href="" class="link">Design Tools</a>
+                <a href="" class="link">Inspiration</a>
+                <a href="" class="link">Resources</a>
+                <a href="" class="link">For the trade</a>
+                <a href="" class="link">Contact us</a>
+                <a href="" class="link">Dealer locator</a>
+            </div>
+        </div>
+    </div>
+</div>
+<div class="container">
+    <div class="row">
+        <div class="col-md-6" >
+            <canvas class="canvas-kitchen" id="kitchen-image1" width="693" height="528" />
+        </div>
+        <div class="col-md-6">
+            <canvas class="canvas-kitchen" id="kitchen-image2" width="445" height="577" />
+        </div>
+    </div>
+    <div class="row">
+        <div class="col-md-6">
+            <h1>Wall</h1>
+            <img onclick="onWallClick(this)" class="wp active" src="images/calacatta-cressa-white-subway-tile-2x4.jpg">
+            <img onclick="onWallClick(this)" class="wp" src="images/essentials-ansello-grey.jpg">
+            <img onclick="onWallClick(this)" class="wp" src="images/bs0360tn.jpg">
+            <img onclick="onWallClick(this)" class="wp" src="images/bs0343tn.jpg">
+            <img onclick="onWallClick(this)" class="wp" src="images/brick.png">
+        </div>
+        <div class="col-md-6">
+            <h1>Floor</h1>
+            <img onclick="onFloorClick(this)" class="fp active" src="images/floor-black.jpg">
+            <img onclick="onFloorClick(this)" class="fp" src="images/floor-brown.jpg">
+            <img onclick="onFloorClick(this)" class="fp" src="images/floor-blackwhite.jpg">
+            <img onclick="onFloorClick(this)" class="fp" src="images/floor-blackwhite2.jpg">
+            <img onclick="onFloorClick(this)" class="fp" src="images/planks_spruce.png">
+        </div>
+    </div>
+</div>
+<script src="opencv.js"></script>
+<script>
+    var canvas1 = new Image();
+    var canvas2 = new Image();
+
+    var imageWall = new Image(); // floor and wall pattern to be applied to canvas
+    var imageFloor = new Image();
+    var overlay1 = new Image(); // overlay applied over the first image
+    var overlay2 = new Image();
+
+    overlay1.src = './images/base.png';
+    overlay2.src = './images/kitchen-image2-overlay3.png';
+
+    canvas1.src = './images/base.png';
+    canvas2.src = './images/image.png';
+    var kitchenImage1 = document.getElementById('kitchen-image1');
+    var kitchenImage2 = document.getElementById('kitchen-image2');
+
+    // load images and draw to canvas
+    var ctx1;
+    var ctx2;
+    window.onload = function () {
+        ctx1 = kitchenImage1.getContext('2d');
+        ctx2 = kitchenImage2.getContext('2d');
+        ctx1.drawImage(canvas1, 0, 0);
+        ctx2.drawImage(canvas2, 0, 0);
+
+        cv['onRuntimeInitialized'] = function () {
+            imageWall.src = document.getElementsByClassName('wp')[0].src;
+            imageFloor.src = document.getElementsByClassName('fp')[0].src;
+            update();
+        }
+    };
+
+    function update() {
+        // clear canvases
+        ctx1.clearRect(0, 0, kitchenImage1.width, kitchenImage1.height);
+        ctx2.clearRect(0, 0, kitchenImage2.width, kitchenImage2.height);
+
+        // apply wall pattern to left image
+        ctx1.fillStyle = ctx1.createPattern(imageWall, 'repeat');
+        ctx1.fillRect(0, 0, kitchenImage1.width, kitchenImage1.height);
+
+        // apply overlay to left image
+        ctx1.fillStyle = ctx1.createPattern(overlay1, 'no-repeat');
+        ctx1.fillRect(0, 0, kitchenImage1.width, kitchenImage1.height);
+
+        // temp canvas to store wall pattern for second image
+        var wallCanvas = document.createElement('canvas');
+        var ctxTempWall = wallCanvas.getContext('2d');
+        ctxTempWall.fillStyle = ctxTempWall.createPattern(imageWall, 'repeat');
+        ctxTempWall.fillRect(0, 0, kitchenImage2.width, kitchenImage2.height);
+
+        // temp canvas to store floor pattern for second image
+        var floorCanvas = document.createElement('canvas');
+        var ctxTempFloor = floorCanvas.getContext('2d');
+        ctxTempFloor.fillStyle = ctxTempFloor.createPattern(imageFloor, 'repeat');
+        ctxTempFloor.fillRect(0, 0, kitchenImage2.width, kitchenImage2.height);
+
+        // change perspective of the wall
+        var srcWall = cv.imread(wallCanvas);
+        var dstWall = new cv.Mat();
+        var matrixWall = cv.getPerspectiveTransform(cv.matFromArray(4, 1, cv.CV_32FC2, [0, 0, 300, 0, 0, 150, 300, 150]), cv.matFromArray(4, 1, cv.CV_32FC2, [79, 213, 349, 242, 77, 366, 351, 339]));
+        cv.warpPerspective(srcWall, dstWall, matrixWall, new cv.Size(kitchenImage2.width, kitchenImage2.height), cv.INTER_LINEAR, cv.BORDER_TRANSPARENT, new cv.Scalar());
+        cv.imshow('kitchen-image2', dstWall);
+        srcWall.delete(); dstWall.delete(); matrixWall.delete();
+
+        // change perspective of the floor
+        var srcFloor = cv.imread(floorCanvas);
+        var dstFloor = new cv.Mat();
+        var matrixFloor = cv.getPerspectiveTransform(cv.matFromArray(4, 1, cv.CV_32FC2, [0, 0, 300, 0, 0, 150, 300, 150]), cv.matFromArray(4, 1, cv.CV_32FC2, [43, 572, 398, 460, 135, 735, 521, 521]));
+        cv.warpPerspective(srcFloor, dstFloor, matrixFloor, new cv.Size(kitchenImage2.width, kitchenImage2.height), cv.INTER_LINEAR, cv.BORDER_TRANSPARENT, new cv.Scalar());
+        cv.imshow('kitchen-image2', dstFloor);
+        srcFloor.delete(); dstFloor.delete(); matrixFloor.delete();
+
+        // apply overlay to second image
+        ctx2.fillStyle = ctx2.createPattern(overlay2, 'no-repeat');
+        ctx2.fillRect(0, 0, kitchenImage2.width, kitchenImage2.height);
+    }
+
+    function onWallClick(element) {
+        imageWall.src = element.src;
+        Array.prototype.forEach.call(document.getElementsByClassName('wp'), function (el) {
+            el.classList.remove('active');
+        });
+        element.classList.add('active');
+        update();
+    }
+
+    function onFloorClick(element) {
+        imageFloor.src = element.src;
+        Array.prototype.forEach.call(document.getElementsByClassName('fp'), function (el) {
+            el.classList.remove('active');
+        });
+        element.classList.add('active');
+        update();
+    }
+</script>
+</body>
+</html>
